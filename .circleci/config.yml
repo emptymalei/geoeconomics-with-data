@@ -33,4 +33,5 @@ jobs:
             cp requirements.txt deploy/requirements.txt
             cd deploy/ && docker build -t $IMAGE_NAME .
             echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
+            docker tag $IMAGE_NAME:$TAG emptymalei/$IMAGE_NAME:$TAG
             docker push emptymalei/$IMAGE_NAME:$TAG
