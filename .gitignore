@@ -143,5 +143,5 @@ dmypy.json
 
 .vscode/*
 
-deploy/requirements.txt
+deploy/*
 !deploy/Dockerfile
