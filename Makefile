@@ -11,9 +11,8 @@ build:
 	cd deploy/ && docker build -t ${DOCKER_IMAGE} .
 	python setup.py clean --all
 	rm -rf dist
-	rm -rf hl.app.*
 	rm -rf deploy/app.*
 
 publish:
-	docker tag ${DOCKER_IMAGE} ${DOCKER_PATH}
-	docker push ${DOCKER_PATH}
+	docker tag ${DOCKER_IMAGE} ${DOCKER_REGISTRY}
+	docker push ${DOCKER_REGISTRY}
