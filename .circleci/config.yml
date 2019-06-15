@@ -9,7 +9,7 @@ jobs:
           name: Install Docker client
           command: |
             apt-get update
-            apt install docker.io
+            apt install -y docker.io
             systemctl start docker
             systemctl enable docker
       - run:
