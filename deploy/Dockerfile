@@ -21,7 +21,5 @@ RUN pip install -r requirements.txt --force --ignore-installed
 COPY app.tar.gz /
 RUN pip install /app.tar.gz
 
-COPY config.yml /
-
 # CMD your consolde script command
 CMD distance_calculator
