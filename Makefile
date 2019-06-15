@@ -4,7 +4,7 @@ DOCKER_IMAGE?=${DOCKER_REGISTRY}:${TAG}
 
 build:
 	rm -rf dist
-	pip install -r requirements.txt
+	pip install -r requirements.txt --force --ignore-installed
 	python setup.py sdist
 	cp dist/app-* deploy/app.tar.gz
 	cp requirements.txt deploy/requirements.txt
