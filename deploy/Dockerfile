@@ -16,7 +16,7 @@ RUN python3.6 -m pip install wheel
 RUN pip install --upgrade pip setuptools
 
 COPY requirements.txt /
-RUN pip install -r requirements.txt
+RUN pip install -r requirements.txt --force --ignore-installed
 
 COPY app.tar.gz /
 RUN pip install /app.tar.gz
