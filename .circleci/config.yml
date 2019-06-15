@@ -6,8 +6,21 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install Docker client
+          command: |
+            set -x
+            VER="17.09.0-ce"
+            curl -L -o /tmp/docker-$VER.tgz https://download.docker.com/linux/static/stable/x86_64/docker-$VER.tgz
+            tar -xz -C /tmp -f /tmp/docker-$VER.tgz
+            mv /tmp/docker/* /usr/bin
+      - run:
           name: Setup Environment
           command: |
+            apt-get update
+            apt-get install -y software-properties-common vim
+            add-apt-repository ppa:jonathonf/python-3.6
+            apt-get update
+            apt-get install -y build-essential python3.6 python3.6-dev python3-pip python3.6-venv
             pip install --no-cache-dir -r requirements.txt
             python setup.py install
       - setup_remote_docker:
