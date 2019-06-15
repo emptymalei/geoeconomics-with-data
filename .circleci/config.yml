@@ -16,6 +16,7 @@ jobs:
             apt-get update
             apt-get install -y software-properties-common vim
             apt install -y python3-pip
+            alias pip=pip3
             pip install --no-cache-dir -r requirements.txt
             python setup.py install
       - setup_remote_docker:
@@ -23,6 +24,7 @@ jobs:
       - run:
           name: Build and push Docker image
           command: |
+            alias pip=pip3
             make build -B
             echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
             docker push emptymalei/$IMAGE_NAME:$TAG
