@@ -18,7 +18,7 @@ jobs:
             apt install -y python3-pip
             alias pip=pip3
             pip3 install --no-cache-dir -r requirements.txt
-            python setup.py install
+            python3 setup.py install
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
