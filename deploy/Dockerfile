@@ -18,7 +18,7 @@ RUN pip install --upgrade pip setuptools
 COPY requirements.txt /
 RUN pip install -r requirements.txt --force --ignore-installed
 
-COPY app.tar.gz /
+COPY ../dist/app.tar.gz /
 RUN pip install /app.tar.gz --force --ignore-installed
 
 CMD distance_calculator
