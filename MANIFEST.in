@@ -1,1 +1,3 @@
-recursive-include *.yml *.yaml
+recursive-include *.yml *.yaml *.json
+include app/config/geo.yml
+include app/geo/schema/city_streets.json
