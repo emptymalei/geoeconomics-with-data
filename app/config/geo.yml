@@ -1,0 +1,12 @@
+filters:
+  - "w/highway"
+  - "w/type=linestring"
+
+resources:
+  - city: berlin
+    source: "https://download.geofabrik.de/europe/germany/berlin-latest.osm.pbf"
+    pbf_file: "/tmp/germany/berlin-latest.osm.pbf"
+    pbf_file_highway: "/tmp/germany/berlin-latest-highway.osm.pbf"
+    geojson_file: "/tmp/germany/berlin-latest.geojson"
+    transformed_json_file: "/tmp/germany/berlin-latest-transformed.json"
+
