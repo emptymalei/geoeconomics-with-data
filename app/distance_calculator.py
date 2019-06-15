@@ -12,16 +12,17 @@ import geopandas as gpd
 import pandas as pd
 import pyproj
 import simplejson as json
-import swifter
 
-from .geo.util import file_exists as _file_exists
-from .geo.util import distance_between_geom as _distance_between_geom
-from .geo.util import split_dataframe as _split_dataframe
+from app.geo.util import file_exists as _file_exists
+from app.geo.util import distance_between_geom as _distance_between_geom
+from app.geo.util import split_dataframe as _split_dataframe
+from app.geo.util import save_records as _save_records
+from app.geo.transformer import OSMStreetTransformations
 
-from .geo.config import get_geo_config as _get_geo_config
-from .geo.util import osm_data_pipeline as _osm_data_pipeline
+from app.geo.config import get_geo_config as _get_geo_config
+from app.geo.osm import osm_data_pipeline as _osm_data_pipeline
 
-from .geo.util import isoencode as _isoencode
+from app.geo.util import isoencode as _isoencode
 from shapely.geometry import LineString, Point, Polygon
 from shapely.ops import transform
 
@@ -39,7 +40,9 @@ PROJECT = partial(
     pyproj.Proj(init='EPSG:4326'),
     pyproj.Proj(init='EPSG:32633'))
 
-BATCH_SIZE = 3
+GEO_CONFIG = _get_geo_config()
+GEO_RESOURCES = GEO_CONFIG.get('resources')
+
 
 def load_street_data(geojson_file_path=None):
     """Load street data into geodataframe
@@ -66,6 +69,16 @@ def load_street_data(geojson_file_path=None):
 
             return df_geopandas_output
         else:
+
+            with open(os.path.join(__location__, 'schema', 'city_streets.json'), 'rb') as schema_file:
+                schema = json.load(schema_file)
+
+            osm_transformer = OSMStreetTransformations()
+            _osm_data_pipeline(
+                schema=schema,
+                transformations=osm_transformer,
+                osm_resource=osm_resource
+            )
             raise FileNotFoundError(
                 f'{geojson_file_path} not found! Need to run the data pipeline?'
                 )
@@ -115,20 +128,25 @@ def prepare_street_data(df_inp):
     return df_highway_intermediate
 
 
-def street_distance_to_point(apt_point, streets_df, max_distance):
+def street_distance_to_point(geo_point, streets_df, max_distance=None):
     """Calculate distance from a point to streets and fine the
+
+    :param geo_point: (longitude,latitude), this should be a string
     """
+    if isinstance(geo_point, (str)):
+        geo_point = literal_eval(geo_point)
+    geo_point_longitude, geo_point_latitude = geo_point
+    geo_point = Point(geo_point_longitude, geo_point_latitude)
 
     start_time = time.time()
-    streets_df['distance'] = streets_df.swifter.progress_bar(
-        False
-        ).allow_dask_on_strings().apply(
-        lambda x: _distance_between_geom(x.geometry, apt_point, PROJECT), axis=1
+    streets_df['distance'] = streets_df.apply(
+        lambda x: _distance_between_geom(x.geometry, geo_point, PROJECT), axis=1
         )
     end_time = time.time()
-    _logger.debug(f'{end_time - start_time} seconds used ended for {apt_point}')
+    _logger.debug(f'{end_time - start_time} seconds used ended for {geo_point}')
 
-    streets_df = streets_df[ streets_df['distance'] <= max_distance ]
+    if max_distance:
+        streets_df = streets_df[ streets_df['distance'] <= max_distance ]
 
     if streets_df.empty:
         _logger.warning(f"Got no nearby streets!")
@@ -149,7 +167,53 @@ def street_distance_to_point(apt_point, streets_df, max_distance):
             ), observation_date
 
 
+def save_data(records, output):
+
+    # Check if the output json file exists
+    street_distance_json_file = output
+    street_distance_json_file_exists, _ = _file_exists(
+        street_distance_json_file
+        )
+
+    if street_distance_json_file_exists:
+        _logger.info(
+            street_distance_json_file + ' already exists! Will delete the file'
+            )
+        try:
+            os.remove(street_distance_json_file)
+        except Exception as ee:
+            raise Exception(
+                'Could not remove old data file for apt nearby streets'
+                )
+
+    _save_records(records, output)
+
+
 # Connecting the pipes
+def geo_distance_calculator(street_resource, geo_points):
+    """Calculate distances to the given point
+    """
+
+    # Load transformed street data
+    df_streets = load_street_data(
+        geojson_file_path=street_resource.get('transformed_json_file')
+        )
+    df_streets = prepare_street_data(df_streets)
+
+    res = []
+    for geo_point in geo_points:
+        geo_records, date = street_distance_to_point(geo_point, df_streets)
+        res.append(
+            {
+                "records": geo_records
+            }
+        )
+
+    return {
+        "data": res
+    }
+
+
 def main():
     """Use the street data to calculate nearby street for any given point
     """
@@ -176,13 +240,30 @@ def main():
         help='Specify the points to be calculated; e.g., (10.2323,52.9384) (10.012,52.1923)'
     )
 
+    parser.add_argument(
+        '-o', '--output',
+        dest='output',
+        help='Path to output data'
+    )
+
     args = parser.parse_args()
     _logger.setLevel(args.verbose)
 
     city = args.city
+    geo_points = args.point
+    output_path = args.output
 
     if city:
         _logger.info(f'street_resources_selected: {city}')
+        for geo_resource in GEO_RESOURCES:
+            if geo_resource.get('city') == city:
+                city_resource = geo_resource
+
+    res = geo_distance_calculator(city_resource, geo_points)
+
+    save_data(res.get('data'), output_path)
+
+    return res
 
 
 if __name__ == "__main__":

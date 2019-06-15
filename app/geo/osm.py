@@ -5,15 +5,15 @@ import argparse
 import logging
 from time import sleep as _sleep
 
-from .config import get_geo_config as _get_geo_config
-from .sourcing import data_downloader as _data_downloader
-from .sourcing import pbf_filter as _pbf_filter
-from .sourcing import pbf2geojson as _pbf2geojson
-from .transformer import clean_up_geojson as _clean_up_geojson
-from .transformer import OSMStreetTransformations
-from .transformer import transform_records_and_save_to_file as _transform_records_and_save_to_file
+from app.geo.config import get_geo_config as _get_geo_config
+from app.geo.sourcing import data_downloader as _data_downloader
+from app.geo.sourcing import pbf_filter as _pbf_filter
+from app.geo.sourcing import pbf2geojson as _pbf2geojson
+from app.geo.transformer import clean_up_geojson as _clean_up_geojson
+from app.geo.transformer import OSMStreetTransformations
+from app.geo.transformer import transform_records_and_save_to_file as _transform_records_and_save_to_file
 
-from .util import check_and_convert_to_date as _check_and_convert_to_date
+from app.geo.util import check_and_convert_to_date as _check_and_convert_to_date
 
 logging.basicConfig()
 _logger = logging.getLogger('app.geo.osm')
@@ -26,7 +26,7 @@ __location__ = os.path.realpath(
 # PARAMS
 
 GEO_CONFIG = _get_geo_config()
-STREET_RESOURCES = GEO_CONFIG.get('resources')
+GEO_RESOURCES = GEO_CONFIG.get('resources')
 HIGHWAY_FILTERS = GEO_CONFIG.get('filters')
 
 # Define the Pipes
@@ -48,18 +48,18 @@ def osm_data_pipeline(
     """Download, Transform, and Upload one poi resource
     """
 
-    today_is = datetime.date.today()
+    today_is = datetime.date.today().isoformat()
 
     res_osm_log = {}
 
     ### Download pbf file
-    _logger('Downloading pbf from: ', osm_resource.get("source"))
-    poi_download_log = data_downloader
+    _logger.info('Downloading pbf from: ', osm_resource.get("source"))
+    poi_download_log = data_downloader(osm_resource)
 
     res_osm_log['download'] = poi_download_log
 
     ### Extract highway pbf from all
-    _logger('Extacting highways from all pbf: ', osm_resource.get("pbf_file"))
+    _logger.info('Extacting highways from all pbf: ', osm_resource.get("pbf_file"))
     poi_pbf_highway_log = _pbf_filter(
             osm_resource.get("pbf_file"),
             osm_resource.get("pbf_file_highway"),
@@ -69,7 +69,7 @@ def osm_data_pipeline(
     res_osm_log['pbf2geojson'] = poi_pbf_highway_log
 
     ### Convert pbf to geojson
-    _logger('Converting pbf to geojson: ', osm_resource.get("pbf_file_highway"))
+    _logger.info('Converting pbf to geojson: ', osm_resource.get("pbf_file_highway"))
     poi_pbf2geojson_log = _pbf2geojson(
         osm_resource.get("pbf_file_highway"),
         osm_resource.get("geojson_file")
@@ -77,7 +77,7 @@ def osm_data_pipeline(
     res_osm_log['pbf2geojson'] = poi_pbf2geojson_log
 
     ### Clean up geojson
-    _logger('Cleaning up geojson file for ', osm_resource.get("geojson_file"))
+    _logger.info('Cleaning up geojson file for ', osm_resource.get("geojson_file"))
     poi_clean_geojson_log = _clean_up_geojson(
         osm_resource.get("geojson_file"),
         load_only_key = "features"
@@ -89,7 +89,7 @@ def osm_data_pipeline(
     ### transform data
     available_osm_transformers = [x for x in dir(transformations) if not x.startswith('_')]
 
-    _logger('Transforming: '.format( osm_resource.get("geojson_file") ) )
+    _logger.info('Transforming: '.format( osm_resource.get("geojson_file") ) )
     _transform_records_and_save_to_file(
             schema,
             available_osm_transformers,
@@ -114,82 +114,31 @@ def main():
     """
 
     today_is = datetime.date.today()
-    all_countries = [i for i in STREET_RESOURCES if i.get('level') == 'country' ]
-    all_regions = [i for i in STREET_RESOURCES]
-    all_states = [i for i in STREET_RESOURCES if i.get('level') == 'state' ]
 
     ### Options
     parser = argparse.ArgumentParser(description='Options for Getting OSM Street data')
+
     parser.add_argument(
-        '--recreate-gbq-table',
-        dest='recreate_gbq_table',
-        default='true',
-        choices=['true','false'],
-        help='whether to recreate the destination table, the default is false.'
-        )
-    parser.add_argument(
-        '--partition-date',
-        dest='partition_date',
-        default='today',
-        help= (
-            'specify the partition_date as the partition field. '
-            'The partition table will be overwritten if this partition date already exists in GBQ!'
-            )
-        )
-    parser.add_argument(
-        '--region',
-        dest='region',
-        default='all',
+        '-c', '--city',
+        dest='city',
         nargs='+',
-        help= '; '.join([
-            'specify the region to be downloaded and transformed. ',
-            'all-countries: get all countries; {}'.format([i.get('location') for i in all_countries]),
-            'all-states: get all states: {}'.format([i.get('location') for i in all_states]),
-            '[region1 region2 region3 ...]: a list of regions to be download; {}'.format(
-                [i.get('location') for i in STREET_RESOURCES]
-                )
-            ])
+        help= 'Specify city resource to be used'
         )
 
     args = parser.parse_args()
-
-    recreate_gbq_table = args.recreate_gbq_table
-    if recreate_gbq_table.lower() == 'false':
-        recreate_gbq_table = False
-    elif recreate_gbq_table.lower() == 'true':
-        print("Will overwrite GBQ tables!!!")
-        recreate_gbq_table = True
+    geo_city = args.city
+    if geo_city:
+        _logger.info(f'--city: {geo_city}')
     else:
-        raise ValueError('option for overwrite is not recognized!')
+        raise ValueError('Wrong input --city: {}'.format(geo_city) )
 
-    geo_region = args.region
-    print('--region: ', geo_region)
-    if 'all' in geo_region:
-        osm_resources_selected = all_regions
-        print('osm_resources_selected', osm_resources_selected)
-    elif 'all-countries' in geo_region:
-        osm_resources_selected = all_countries
-        print('osm_resources_selected', osm_resources_selected)
-    elif 'all-states' in geo_region:
-        osm_resources_selected = all_states
-        print('osm_resources_selected', osm_resources_selected)
-    elif geo_region:
-        osm_resources_selected = [i for i in STREET_RESOURCES if i.get('location') in geo_region ]
-        print('osm_resources_selected', osm_resources_selected)
-    else:
-        raise ValueError('Wrong input region: {}'.format(geo_region) )
+    # Get resource for the cities
+    osm_resources_selected = []
+    for geo_resource in GEO_RESOURCES:
+        if geo_resource.get('city') in geo_city:
+            osm_resources_selected.append(geo_resource)
 
-    partition_date = args.partition_date
-    if partition_date == 'today':
-        partition_date = '$' + today_is.strftime("%Y%m%d")
-    else:
-        partition_date = _check_and_convert_to_date(partition_date)
-        if not partition_date:
-            partition_date='$' + today_is.strftime("%Y%m%d")
-        else:
-            partition_date='$' + partition_date.strftime("%Y%m%d")
-
-    #### initialize bigquery client
+    #### Load Transformers
     with open(os.path.join(__location__, 'schema', 'city_streets.json'), 'rb') as schema_file:
             schema = json.load(schema_file)
 

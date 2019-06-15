@@ -8,7 +8,6 @@ from shutil import copyfile
 import numpy as np
 import simplejson as json
 
-from .schema import schema as _schema
 from .util import \
     check_and_convert_to_datetime as _check_and_convert_to_datetime
 from .util import get_dict_val_recursively as _get_dict_val_recursively
@@ -18,6 +17,10 @@ from .util import isoencode as _isoencode
 logging.basicConfig()
 _logger = logging.getLogger('app.geo.transformer')
 
+__cwd__ = os.getcwd()
+__location__ = os.path.realpath(
+    os.path.join(__cwd__, os.path.dirname(__file__))
+    )
 
 def get_osm_id(osm_id_raw, with_type):
     """Standardize the notations for types
@@ -178,7 +181,7 @@ def clean_up_geojson(json_inp, load_only_key = None):
     today_is = datetime.date.today()
     json_out_temp = '/'.join(
         json_inp.split('/')[:-1]
-        ) + "/poi-line-delimited-{}.json".format(
+        ) + "/osm-line-delimited-{}.json".format(
         today_is
         )
     try:
@@ -306,72 +309,3 @@ def transform_records_and_save_to_file(
                     print('could not write the transformed record:\n {}'.format(row))
 
     print('wrote json file into: {}'.format(output_file))
-
-
-
-if __name__ == "__main__":
-
-    # one_record = {'type': 'Feature',
-    #         'id': 'node/21385751',
-    #         'properties': {'timestamp': '2018-06-16T15:28:45Z',
-    #         'version': '20',
-    #         'user': '',
-    #         'uid': '0',
-    #         'contact:phone': '+49 30 297 43333',
-    #         'contact:website': 'http://www.s-bahn-berlin.de/fahrplanundnetz/bahnhof/storkower-strasse/142',
-    #         'light_rail': 'yes',
-    #         'name': 'S Storkower Straße',
-    #         'network': 'Verkehrsverbund Berlin-Brandenburg',
-    #         'network:short': 'VBB',
-    #         'note': 'mangels Weichen nur ein Haltepunkt',
-    #         'official_name': 'Berlin Storkower Straße',
-    #         'old_name': 'Zentralviehhof',
-    #         'operator': 'DB Netz AG',
-    #         'public_transport': 'station',
-    #         'railway': 'halt',
-    #         'railway:ref': 'BSTO',
-    #         'railway:station_category': '4',
-    #         'station': 'light_rail',
-    #         'uic_name': 'Berlin Storkower Str',
-    #         'uic_ref': '8089041',
-    #         'wheelchair': 'yes',
-    #         'wikidata': 'Q800512',
-    #         'wikipedia': 'de:Bahnhof Berlin Storkower Straße',
-    #         'id': 'node/21385751'},
-    #         'geometry': {'type': 'Point', 'coordinates': [13.4648885, 52.5237432]}}
-
-    # osm_tran = OSMTransformations()
-
-    # available_osm_transformers = [x for x in dir(osm_tran) if not x.startswith('_')]
-
-    # with open(os.path.join(os.path.dirname(_schema.__file__), 'poi_schema.json'), 'rb') as source_file:
-    #     schema = json.load(source_file)
-
-    # res = {}
-    # transform_record(
-    #     {'fields': schema}, [], one_record, res, available_osm_transformers, osm_tran)
-
-    # print(
-    #     osm_tran.id(one_record)
-    # )
-
-    # print(
-    #     res
-    # )
-
-    osm_tran = OSMStreetTransformations()
-    available_osm_transformers = [x for x in dir(osm_tran) if not x.startswith('_')]
-    with open(os.path.join(os.path.dirname(_schema.__file__), 'street_schema.json'), 'rb') as source_file:
-        schema = json.load(source_file)
-
-    transform_records_and_save_to_file(
-        schema=schema,
-        available_transformers=available_osm_transformers,
-        transformations=osm_tran,
-        observation_date='2019-05-29',
-        input_file='/tmp/gb/greater-london-latest-highway.geojson',
-        output_file='/tmp/gb/greater-london-latest-highway-transformed.json'
-    )
-
-
-    print('END')

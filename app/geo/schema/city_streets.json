@@ -14,27 +14,6 @@
       "mode": "NULLABLE"
     },
     {
-      "name": "official_name",
-      "description": "The official name of the location",
-      "source": "properties.official_name",
-      "type": "STRING",
-      "mode": "NULLABLE"
-    },
-    {
-      "name": "city",
-      "description": "city name of the location",
-      "source": "properties.addr:city",
-      "type": "STRING",
-      "mode": "NULLABLE"
-    },
-    {
-      "name": "country",
-      "description": "country name of the location",
-      "source": "properties.addr:country",
-      "type": "STRING",
-      "mode": "NULLABLE"
-    },
-    {
       "name": "geometry",
       "description": "geometry of the osm object",
       "type": "STRING",

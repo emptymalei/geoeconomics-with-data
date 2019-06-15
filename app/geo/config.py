@@ -11,9 +11,9 @@ __location__ = os.path.realpath(
 
 def get_geo_config():
 
-    config_file_path = os.path.join(__location__, '..', 'geo.yml')
-
-    return _yaml.load(config_file_path)
+    config_file_path = os.path.join(__location__, '..', 'config', 'geo.yml')
+    with open(config_file_path, 'r') as fp:
+        return _yaml.load(fp)
 
 
 if __name__ == '__main__':

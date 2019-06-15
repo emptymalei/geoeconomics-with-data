@@ -143,7 +143,5 @@ dmypy.json
 
 .vscode/*
 
-# patho to your data files
-
-# my script for testing
-test_code.sh
+deploy/*
+!deploy/Dockerfile

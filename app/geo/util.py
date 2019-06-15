@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+import json
 from time import sleep as _sleep
 
 import numpy as np
@@ -11,6 +12,44 @@ from shapely.ops import transform
 
 logging.basicConfig()
 _logger = logging.getLogger('app.geo.util')
+
+
+def load_records(data_path_inp):
+
+    data = []
+
+    with open(data_path_inp, 'r') as fp:
+        for line in fp:
+            line = line.replace('null', ' "None" ')
+            try:
+                line_data = json.loads(line.strip())
+            except Exception as ee:
+                logging.warning('could not load ', line, '\n', ee)
+            data.append(line_data)
+
+    return data
+
+def save_records(data_inp, output, is_flush=None):
+
+    if is_flush is None:
+        is_flush = False
+
+    if isinstance(data_inp, list):
+        data = data_inp
+    elif isinstance(data_inp, dict):
+        data = [data_inp]
+    else:
+        raise Exception('Input data is neither list nor dict: {}'.format(data_inp))
+
+    try:
+        with open(output, 'a+') as fp:
+            for i in data:
+                json.dump(i, fp)
+                fp.write('\n')
+                if is_flush:
+                    fp.flush()
+    except Exception as ee:
+        raise Exception('Could not load data to file: {}'.format(ee))
 
 
 def check_and_convert_to_date(x):
@@ -34,6 +73,53 @@ def check_and_convert_to_date(x):
             raise ValueError('Could not convert date - error: {}'.format(v))
     else:
         raise ValueError('Could not convert input {} to date'.format(x))
+
+
+def check_and_convert_to_datetime(input_date, convert_to_utc=False):
+    """
+    Convert input to *datetime* object.
+    This is the last effort of converting input to datetime.
+    The order of instance check is
+    1. datetime.datetime
+    2. str
+    3. float or int
+    >>> handle_strange_dates(1531323212311)
+    datetime(2018, 7, 11, 17, 33, 32, 311000)
+    >>> handle_strange_dates(datetime(2085,1,1))
+    datetime(2050, 1, 1)
+    """
+
+    if isinstance(input_date, datetime.datetime):
+        if input_date.tzinfo is not None:
+            if convert_to_utc:
+                input_date = input_date.astimezone(tz=pytz.utc).replace(tzinfo=None)
+            else:
+                input_date = input_date.replace(tzinfo=None)
+        cur_year = datetime.datetime.now().year
+        if abs(input_date.year - cur_year) > 50:
+            return datetime.datetime(2050, 1, 1)
+        return input_date
+    if isinstance(input_date, str):
+        try:
+            input_date = dateutil.parser.parse(input_date)
+        except:
+            return None
+
+        if input_date.tzinfo is not None:
+            if convert_to_utc:
+                input_date = input_date.astimezone(tz=pytz.utc).replace(tzinfo=None)
+            else:
+                input_date = input_date.replace(tzinfo=None)
+        cur_year = datetime.datetime.now().year
+        if abs(input_date.year - cur_year) > 50:
+            return datetime.datetime(2050, 1, 1)
+        return input_date
+    if isinstance(input_date, (float, int)):
+        try:
+            res = datetime.datetime.fromtimestamp(input_date / 1000)
+        except:
+            res = None
+        return res
 
 
 def split_dataframe(df_inp, chunk_size=None, chunks=None):

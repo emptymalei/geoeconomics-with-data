@@ -147,7 +147,7 @@ def pbf_filter(pbf_file, filtered_pbf_file, filter_params, bounding_box=None):
                 sp_log.flush()
 
         print(' '.join(osmium_call) )
-        with open(filtered_pbf_file+'.log', "w") as sp_log:
+        with open(filtered_pbf_file+'.log', "w+") as sp_log:
             with subprocess.Popen(osmium_call, stdout=sp_log, stderr=subprocess.PIPE) as sp:
                 sp.wait()
                 sp_stdout, sp_stderr = sp.communicate()
@@ -169,12 +169,6 @@ def pbf_filter(pbf_file, filtered_pbf_file, filter_params, bounding_box=None):
 
 
 if __name__ == "__main__":
-    print(
-        pbf2geojson(
-            "~/Downloads/greater-london-latest.osm.pbf",
-            "~/Downloads/greater-london-latest-osmium.geojson"
-        )
-    )
     print('END OF GAME')
 
 
