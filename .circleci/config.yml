@@ -25,6 +25,12 @@ jobs:
           name: Build and push Docker image
           command: |
             alias pip=pip3
-            make build -B
+            rm -rf dist
+            pip3 install -r requirements.txt --force --ignore-installed
+            python3 setup.py sdist
+            cp dist/app-* deploy/app.tar.gz
+            cp requirements.txt deploy/requirements.txt
+            cd deploy/ && docker build -t ${DOCKER_IMAGE} .
+            python3 setup.py clean --all
             echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
             docker push emptymalei/$IMAGE_NAME:$TAG
