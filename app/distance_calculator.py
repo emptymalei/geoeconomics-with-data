@@ -42,7 +42,7 @@ PROJECT = partial(
 
 
 
-def load_street_data(osm_resource, geojson_file_path=None, schema):
+def load_street_data(osm_resource, schema, geojson_file_path=None):
     """Load street data into geodataframe
     """
 
@@ -199,8 +199,8 @@ def geo_distance_calculator(street_resource, geo_points, schema):
     # Load transformed street data
     df_streets = load_street_data(
         street_resource,
-        geojson_file_path=street_resource.get('transformed_json_file'),
-        schema=schema
+        schema=schema,
+        geojson_file_path=street_resource.get('transformed_json_file')
         )
     df_streets = prepare_street_data(df_streets)
 
