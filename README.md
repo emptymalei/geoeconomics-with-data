@@ -1,8 +1,12 @@
 # geoeconomics
 
+[![CircleCI](https://circleci.com/gh/emptymalei/geoeconomics-with-data.svg?style=svg)](https://circleci.com/gh/emptymalei/geoeconomics-with-data)
+
 [Proof of concept]
 
-This package will download osm data, extract street data, and clean up the data. Some other useful data parsing functions are also included.
+*Validating a hypothesis about distribution of streets.*
+
+This tool is providing data for my research. It will download osm data, extract street data, and clean up the data. Some other useful data parsing functions are also included.
 
 
 
