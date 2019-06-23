@@ -44,7 +44,7 @@ GEO_CONFIG = _get_geo_config()
 GEO_RESOURCES = GEO_CONFIG.get('resources')
 
 
-def load_street_data(geojson_file_path=None):
+def load_street_data(osm_resource, geojson_file_path=None):
     """Load street data into geodataframe
     """
 
@@ -69,8 +69,10 @@ def load_street_data(geojson_file_path=None):
 
             return df_geopandas_output
         else:
-
-            with open(os.path.join(__location__, 'schema', 'city_streets.json'), 'rb') as schema_file:
+            _logger.warning(
+                f'{geojson_file_path} not found!'
+                )
+            with open(os.path.join(__location__, 'geo', 'schema', 'city_streets.json'), 'rb') as schema_file:
                 schema = json.load(schema_file)
 
             osm_transformer = OSMStreetTransformations()
@@ -79,8 +81,8 @@ def load_street_data(geojson_file_path=None):
                 transformations=osm_transformer,
                 osm_resource=osm_resource
             )
-            raise FileNotFoundError(
-                f'{geojson_file_path} not found! Need to run the data pipeline?'
+            _logger.warning(
+                f'Downloaded, transformed and saved data in file {geojson_file_path} !'
                 )
 
 
@@ -196,6 +198,7 @@ def geo_distance_calculator(street_resource, geo_points):
 
     # Load transformed street data
     df_streets = load_street_data(
+        street_resource,
         geojson_file_path=street_resource.get('transformed_json_file')
         )
     df_streets = prepare_street_data(df_streets)
@@ -253,11 +256,17 @@ def main():
     geo_points = args.point
     output_path = args.output
 
+    if not output_path:
+        raise Exception('Did not specify output path: -o')
+
     if city:
         _logger.info(f'street_resources_selected: {city}')
         for geo_resource in GEO_RESOURCES:
             if geo_resource.get('city') == city:
                 city_resource = geo_resource
+    else:
+        raise Exception('Did not specify/find city: -c')
+
 
     res = geo_distance_calculator(city_resource, geo_points)
 
