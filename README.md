@@ -1,6 +1,6 @@
 # geoeconomics
 
-Proof of concept for a complete project for ETL for geoeconomics.
+[Proof of concept]
 
 This package will download osm data, extract street data, and clean up the data. Some other useful data parsing functions are also included.
 
