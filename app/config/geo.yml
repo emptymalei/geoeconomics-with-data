@@ -15,5 +15,3 @@ resources:
     pbf_file_highway: "/tmp/germany/bremen-latest-highway.osm.pbf"
     geojson_file: "/tmp/germany/bremen-latest.geojson"
     transformed_json_file: "/tmp/germany/bremen-latest-transformed.json"
-
-

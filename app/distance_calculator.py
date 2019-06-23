@@ -40,11 +40,9 @@ PROJECT = partial(
     pyproj.Proj(init='EPSG:4326'),
     pyproj.Proj(init='EPSG:32633'))
 
-GEO_CONFIG = _get_geo_config()
-GEO_RESOURCES = GEO_CONFIG.get('resources')
 
 
-def load_street_data(osm_resource, geojson_file_path=None):
+def load_street_data(osm_resource, geojson_file_path=None, schema):
     """Load street data into geodataframe
     """
 
@@ -72,8 +70,8 @@ def load_street_data(osm_resource, geojson_file_path=None):
             _logger.warning(
                 f'{geojson_file_path} not found!'
                 )
-            with open(os.path.join(__location__, 'geo', 'schema', 'city_streets.json'), 'rb') as schema_file:
-                schema = json.load(schema_file)
+            if not schema:
+                raise Exception('load_street_data did find schema')
 
             osm_transformer = OSMStreetTransformations()
             _osm_data_pipeline(
@@ -84,7 +82,6 @@ def load_street_data(osm_resource, geojson_file_path=None):
             _logger.warning(
                 f'Downloaded, transformed and saved data in file {geojson_file_path} !'
                 )
-
 
 
 def prepare_street_data(df_inp):
@@ -192,14 +189,18 @@ def save_data(records, output):
 
 
 # Connecting the pipes
-def geo_distance_calculator(street_resource, geo_points):
+def geo_distance_calculator(street_resource, geo_points, schema):
     """Calculate distances to the given point
     """
+
+    if not schema:
+        raise Exception('geo_distance_calculator did not find schema')
 
     # Load transformed street data
     df_streets = load_street_data(
         street_resource,
-        geojson_file_path=street_resource.get('transformed_json_file')
+        geojson_file_path=street_resource.get('transformed_json_file'),
+        schema=schema
         )
     df_streets = prepare_street_data(df_streets)
 
@@ -220,6 +221,8 @@ def geo_distance_calculator(street_resource, geo_points):
 def main():
     """Use the street data to calculate nearby street for any given point
     """
+
+
 
     parser = argparse.ArgumentParser(description='Distance Calculator')
 
@@ -244,6 +247,20 @@ def main():
     )
 
     parser.add_argument(
+        '-cfg','--config',
+        dest='config',
+        nargs='+',
+        help='Definition of OSM data parameters'
+    )
+
+    parser.add_argument(
+        '-s','--schema',
+        dest='schema_path',
+        nargs='+',
+        help='Definition of OSM data parameters'
+    )
+
+    parser.add_argument(
         '-o', '--output',
         dest='output',
         help='Path to output data'
@@ -255,6 +272,15 @@ def main():
     city = args.city
     geo_points = args.point
     output_path = args.output
+    config_path = args.config
+    schema_path = args.schema
+
+    if not config_path:
+        GEO_CONFIG = _get_geo_config(config_path)
+    else:
+        GEO_CONFIG = _get_geo_config()
+
+    GEO_RESOURCES = GEO_CONFIG.get('resources')
 
     if not output_path:
         raise Exception('Did not specify output path: -o')
@@ -267,8 +293,17 @@ def main():
     else:
         raise Exception('Did not specify/find city: -c')
 
+    if not schema_path:
+        schema_path = os.path.join(
+            __location__, 'geo', 'schema', 'city_streets.json'
+            )
 
-    res = geo_distance_calculator(city_resource, geo_points)
+    with open(schema_path, 'rb') as schema_file:
+        schema = json.load(schema_file)
+
+    res = geo_distance_calculator(
+        city_resource, geo_points, schema
+        )
 
     save_data(res.get('data'), output_path)
 
