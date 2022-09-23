@@ -1,7 +1,7 @@
 pyproj==1.9.6
 pyasn1==0.4.5
 pyasn1-modules==0.2.5
-protobuf==3.7.1
+protobuf==3.18.3
 Pillow==6.0.0
 requests>=2.18.4
 urllib3==1.22
